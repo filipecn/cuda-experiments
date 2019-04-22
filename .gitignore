@@ -1,3 +1,5 @@
 bazel-*
 .vs*
 external/*
+build
+wbuild

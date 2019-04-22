@@ -9,10 +9,10 @@ new_http_archive(
     strip_prefix = "googletest-release-1.7.0",
 )
 
-http_archive(
-    name = "ponosZIP",
-    url = "https://github.com/filipecn/ponos/archive/master.zip",
-)
+# http_archive(
+#     name = "ponosZIP",
+#     url = "https://github.com/filipecn/ponos/archive/master.zip",
+# )
 
 # ===== cuda =====
 cuda_configure(name = "local_config_cuda")
