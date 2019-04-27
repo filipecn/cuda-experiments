@@ -6,15 +6,17 @@ __global__ void __setupScene(hitable **objects, hitable **world, camera **cam) {
   using namespace hermes::cuda;
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     objects[0] = new sphere(vec3(0.0f, 0.0f, -1.0f), 0.5f,
-                            new lambertian(vec3(0.8, 0.3, 0.3)));
+                            new lambertian(vec3(0.1, 0.2, 0.5)));
     objects[1] = new sphere(vec3(0.0f, -100.5f, -1.0f), 100.f,
                             new lambertian(vec3(0.8, 0.8, 0.0)));
     objects[2] = new sphere(vec3(1.0f, 0.0f, -1.0f), 0.5f,
-                            new metal(vec3(0.8, 0.6, 0.2), 1.0));
-    objects[3] = new sphere(vec3(-1.0f, 0.0f, -1.0f), 0.5f,
-                            new metal(vec3(0.8, 0.8, 0.8), 0.3));
+                            new metal(vec3(0.8, 0.6, 0.2)));
+    objects[3] =
+        new sphere(vec3(-1.0f, 0.0f, -1.0f), 0.5f, new dielectric(1.5));
+    objects[4] =
+        new sphere(vec3(-1.0f, 0.0f, -1.0f), -0.45f, new dielectric(1.5));
     *cam = new camera();
-    *world = new hitableList(objects, 4);
+    *world = new hitableList(objects, 5);
   }
 }
 
@@ -70,7 +72,7 @@ int main(int argc, char **argv) {
   camera **cam = nullptr;
   {
     using namespace hermes::cuda;
-    CUDA_CHECK(cudaMalloc(&objects, 4 * sizeof(hitable *)));
+    CUDA_CHECK(cudaMalloc(&objects, 5 * sizeof(hitable *)));
     CUDA_CHECK(cudaMalloc(&world, sizeof(hitable *)));
     CUDA_CHECK(cudaMalloc(&cam, sizeof(camera *)));
   }
@@ -81,6 +83,7 @@ int main(int argc, char **argv) {
   hermes::ThreadArrayDistributionInfo td(imageSize.x, imageSize.y);
   __render<<<td.gridSize, td.blockSize>>>(film.pixelsDeviceData(), imageSize.x,
                                           imageSize.y, world, cam, 50);
+  std::cerr << "render complete\n";
   // cudaFree(scene.list[0]);
   // cudaFree(scene.list[1]);
   // VIS
