@@ -5,6 +5,7 @@ using namespace heliades;
 __global__ void __setupScene(hitable **objects, hitable **world, camera **cam) {
   using namespace hermes::cuda;
   if (threadIdx.x == 0 && blockIdx.x == 0) {
+    float R = cosf(3.14159265358979323846f / 4);
     objects[0] = new sphere(vec3(0.0f, 0.0f, -1.0f), 0.5f,
                             new lambertian(vec3(0.1, 0.2, 0.5)));
     objects[1] = new sphere(vec3(0.0f, -100.5f, -1.0f), 100.f,
@@ -15,8 +16,57 @@ __global__ void __setupScene(hitable **objects, hitable **world, camera **cam) {
         new sphere(vec3(-1.0f, 0.0f, -1.0f), 0.5f, new dielectric(1.5));
     objects[4] =
         new sphere(vec3(-1.0f, 0.0f, -1.0f), -0.45f, new dielectric(1.5));
-    *cam = new camera();
+    hermes::cuda::vec3 lookFrom(3, 3, 2);
+    hermes::cuda::vec3 lookAt(0, 0, -1);
+    float distToFocus = (lookFrom - lookAt).length();
+    float aperture = 2.0;
+    *cam = new camera(lookFrom, lookAt, vec3(0, 1, 0), 20, 2, aperture,
+                      distToFocus);
     *world = new hitableList(objects, 5);
+  }
+}
+
+__global__ void __setupRandomScene(hitable **objects, hitable **world,
+                                   camera **cam) {
+  using namespace hermes::cuda;
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    HS rng;
+    objects[0] = new sphere(vec3(0.0f, -1000.0f, 0.0f), 1000,
+                            new lambertian(vec3(0.5, 0.5, 0.5)));
+    int i = 1;
+    objects[i++] = new sphere(vec3(0, 1, 0), 1, new dielectric(1.5));
+    objects[i++] =
+        new sphere(vec3(-4, 1, 0), 1, new lambertian(vec3(0.4, 0.2, 0.1)));
+    objects[i++] =
+        new sphere(vec3(4, 1, 0), 1, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+    for (int a = -11; a < 11; a++)
+      for (int b = -11; b < 11; b++) {
+        float chooseMat = rng.random();
+        vec3 center(a + 0.9 * rng.random(), 0.2, b + 0.9 * rng.random());
+        if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
+          if (chooseMat < 0.8)
+            objects[i++] =
+                new sphere(center, 0.2,
+                           new lambertian(vec3(rng.random() * rng.random(),
+                                               rng.random() * rng.random(),
+                                               rng.random() * rng.random())));
+          else if (chooseMat < 0.95)
+            objects[i++] =
+                new sphere(center, 0.2,
+                           new metal(vec3(0.5 * (1 + rng.random()),
+                                          0.5 * (1 + rng.random()),
+                                          0.5 * (1 + rng.random()))));
+          else
+            objects[i++] = new sphere(center, 0.2, new dielectric(1.5));
+        }
+      }
+    hermes::cuda::vec3 lookFrom(10, 2, 3);
+    hermes::cuda::vec3 lookAt(4, 1, 1);
+    float distToFocus = (lookFrom - lookAt).length();
+    float aperture = 0.001;
+    *cam = new camera(lookFrom, lookAt, vec3(0, 1, 0), 20, 2, aperture,
+                      distToFocus);
+    *world = new hitableList(objects, 40);
   }
 }
 
@@ -72,17 +122,26 @@ int main(int argc, char **argv) {
   camera **cam = nullptr;
   {
     using namespace hermes::cuda;
-    CUDA_CHECK(cudaMalloc(&objects, 5 * sizeof(hitable *)));
+    CUDA_CHECK(cudaMalloc(&objects, 501 * sizeof(hitable *)));
     CUDA_CHECK(cudaMalloc(&world, sizeof(hitable *)));
     CUDA_CHECK(cudaMalloc(&cam, sizeof(camera *)));
   }
-  __setupScene<<<1, 1>>>(objects, world, cam);
+  __setupRandomScene<<<1, 1>>>(objects, world, cam);
+  {
+    using namespace hermes::cuda;
+    CUDA_CHECK(cudaDeviceSynchronize());
+  }
   // rendering
   hermes::cuda::vec2u imageSize(800, 400);
   heliades::Film film(imageSize);
   hermes::ThreadArrayDistributionInfo td(imageSize.x, imageSize.y);
   __render<<<td.gridSize, td.blockSize>>>(film.pixelsDeviceData(), imageSize.x,
                                           imageSize.y, world, cam, 50);
+
+  {
+    using namespace hermes::cuda;
+    CUDA_CHECK(cudaDeviceSynchronize());
+  }
   std::cerr << "render complete\n";
   // cudaFree(scene.list[0]);
   // cudaFree(scene.list[1]);

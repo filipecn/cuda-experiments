@@ -13,12 +13,12 @@ set(HELIADES_HEADERS
 )
 
 set(HELIADES_SOURCES
-    heliades/core/film.cpp
+    heliades/core/film.cu
 )
 
 enable_language("CUDA")
 add_executable(main main.cu io.cu ${HELIADES_HEADERS} ${HELIADES_SOURCES})
-add_dependencies(main ponos)
+# add_dependencies(main ponos)
 target_include_directories(main PUBLIC 
     ${CMAKE_CURRENT_LIST_DIR}
     ${PONOS_INCLUDE_DIR} 

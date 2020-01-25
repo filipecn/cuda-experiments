@@ -1,7 +1,6 @@
 #include <iostream>
 #include <math.h>
 
-
 // CUDA kernel to add elements of two arrays
 __global__ void add(int n, float *x, float *y) {
   int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -11,15 +10,15 @@ __global__ void add(int n, float *x, float *y) {
 }
 
 int main(void) {
-    std::cout << "CUDA Compiled version: " << __CUDACC_VER__ << std::endl;
+  std::cout << "CUDA Compiled version: " << __CUDACC_VER__ << std::endl;
 
-    int runtime_ver;
-    cudaRuntimeGetVersion(&runtime_ver);
-    std::cout << "CUDA Runtime version: " << runtime_ver << std::endl;
+  int runtime_ver;
+  cudaRuntimeGetVersion(&runtime_ver);
+  std::cout << "CUDA Runtime version: " << runtime_ver << std::endl;
 
-    int driver_ver;
-    cudaDriverGetVersion(&driver_ver);
-std::cout << "CUDA Driver version: " << driver_ver << std::endl;
+  int driver_ver;
+  cudaDriverGetVersion(&driver_ver);
+  std::cout << "CUDA Driver version: " << driver_ver << std::endl;
 
   int N = 1 << 20;
   float *x, *y;

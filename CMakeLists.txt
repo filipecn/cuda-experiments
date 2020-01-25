@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.7)
 
-project(CUDA_EXPERIMENTS)
+set(CMAKE_MODULE_PATH
+  "${CMAKE_SOURCE_DIR}/CMake"
+  ${CMAKE_MODULE_PATH}
+  )
+
+project(CUDA_EXPERIMENTS LANGUAGES CUDA CXX)
+list(APPEND CUDA_NVCC_FLAGS -arch compute_30 -use_fast_math)
+
+add_definitions(-D__CUDA_INCLUDE_COMPILER_INTERNAL_HEADERS__=1)
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --default-stream per-thread")
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -10,6 +18,13 @@ set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE "ON")
 
 set(DEBUG_FLAGS "${DEBUG_FLAGS} -g -Wall -Wextra  -fPIC")
 set(RELEASE_FLAGS "-O3 -Wall -Wextra  -fPIC")
+if (MSVC)
+    add_definitions(-DNOMINMAX)
+    set(DEBUG_FLAGS "/FS /Zi /EHsc /MDd /D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING")
+    set(RELEASE_FLAGS "/FS /EHsc")
+    list(APPEND CUDA_NVCC_FLAGS --compiler-options /D_USE_MATH_DEFINES)
+endif (MSVC)
+
 set(CMAKE_CXX_FLAGS ${RELEASE_FLAGS})
 set(CMAKE_CXX_FLAGS_DEBUG ${DEBUG_FLAGS})
 
